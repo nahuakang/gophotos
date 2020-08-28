@@ -10,17 +10,20 @@ import (
 var homeView *views.View
 var contactView *views.View
 
+// Handler function for home
 func home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	err := homeView.Template.ExecuteTemplate(w, homeView.Layout, nil)
-	if err != nil {
-		panic(err)
-	}
+	must(homeView.Render(w, nil))
 }
 
+// Handler function for contact
 func contact(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
-	err := contactView.Template.ExecuteTemplate(w, contactView.Layout, nil)
+	must(contactView.Render(w, nil))
+}
+
+// Helper function to panic if View.Render returns an error
+func must(err error) {
 	if err != nil {
 		panic(err)
 	}
