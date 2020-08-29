@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/nahuakang/gophotos/views"
@@ -13,7 +14,7 @@ func NewUsers() *Users {
 	}
 }
 
-// Users contains data for users
+// Users Controller contains data for users
 type Users struct {
 	NewView *views.View
 }
@@ -24,4 +25,14 @@ func (u *Users) New(w http.ResponseWriter, r *http.Request) {
 	if err := u.NewView.Render(w, nil); err != nil {
 		panic(err)
 	}
+}
+
+// Create propcesses the signup form when a user creates a new user account
+// POST /signup
+func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		panic(err)
+	}
+	fmt.Fprintln(w, r.PostForm["email"])
+	fmt.Fprintln(w, r.PostForm["password"])
 }
