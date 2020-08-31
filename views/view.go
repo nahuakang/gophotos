@@ -48,5 +48,14 @@ type View struct {
 
 // Render renders a view
 func (v *View) Render(w http.ResponseWriter, data interface{}) error {
+	w.Header().Set("Content-Type", "text/html")
 	return v.Template.ExecuteTemplate(w, v.Layout, data)
+}
+
+// ServeHTTP ensures views.View implements http.Handler
+// which in turn is taken by mux.Router.Handle()
+func (v *View) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if err := v.Render(w, nil); err != nil {
+		panic(err)
+	}
 }
