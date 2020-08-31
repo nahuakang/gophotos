@@ -6,10 +6,10 @@ import "github.com/nahuakang/gophotos/views"
 func NewStatic() *Static {
 	return &Static{
 		Home: views.NewView(
-			"bootstrap", "views/static/home.gohtml",
+			"bootstrap", "static/home",
 		),
 		Contact: views.NewView(
-			"bootstrap", "views/static/contact.gohtml",
+			"bootstrap", "static/contact",
 		),
 	}
 }
