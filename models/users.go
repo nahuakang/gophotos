@@ -56,16 +56,25 @@ func (us *UserService) Create(user *User) error {
 // in a 500 error.
 func (us *UserService) ByID(id uint) (*User, error) {
 	var user User
-	err := us.db.Where("id = ?", id).First(&user).Error
-
-	switch err {
-	case nil:
-		return &user, nil
-	case gorm.ErrRecordNotFound:
-		return nil, ErrNotFound
-	default:
+	db := us.db.Where("id = ?", id)
+	err := first(db, &user)
+	if err != nil {
 		return nil, err
 	}
+	return &user, nil
+}
+
+// ByEmail looks up a user with the given email address and
+// returns the user.
+// If the user is found, nil is returned as error.
+// If the user is not found, ErrNotFound is returned.
+// If there is another error, the error is returned with
+// more information on what went wrong.
+func (us *UserService) ByEmail(email string) (*User, error) {
+	var user User
+	db := us.db.Where("email = ?", email)
+	err := first(db, &user)
+	return &user, err
 }
 
 // DestructiveReset drops the user table and rebuilds it
@@ -77,4 +86,15 @@ func (us *UserService) DestructiveReset() {
 // Close closes UserService database connection
 func (us *UserService) Close() error {
 	return us.db.Close()
+}
+
+// first will query using the provided gorm.DB and it returns
+// the first item returned and place it into dst. If nothing
+// is found in the query, the method returns ErrNotFound
+func first(db *gorm.DB, dst interface{}) error {
+	err := db.First(dst).Error
+	if err == gorm.ErrRecordNotFound {
+		return ErrNotFound
+	}
+	return err
 }
