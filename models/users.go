@@ -11,6 +11,9 @@ var (
 	// ErrNotFound is returned when a resource cannot be found
 	// in the database.
 	ErrNotFound = errors.New("models: resource not found")
+	// ErrInvalidID is returned when an invalid ID is provided
+	// to a method such as Delete.
+	ErrInvalidID = errors.New("models: ID provided is invalid")
 )
 
 // NewUserService returns a pointer to UserService
@@ -43,6 +46,21 @@ type UserService struct {
 // like the ID, CreateAt, and UpdateAt fields.
 func (us *UserService) Create(user *User) error {
 	return us.db.Create(user).Error
+}
+
+// Update updates the provided user with the data provided.
+func (us *UserService) Update(user *User) error {
+	return us.db.Save(user).Error
+}
+
+// Delete deletes the user with the provided ID
+func (us *UserService) Delete(id uint) error {
+	// If no ID is provided
+	if id == 0 {
+		return ErrInvalidID
+	}
+	user := User{Model: gorm.Model{ID: id}}
+	return us.db.Delete(&user).Error
 }
 
 // ByID looks up a user with the provided ID.
