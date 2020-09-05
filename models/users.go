@@ -33,8 +33,10 @@ func NewUserService(connectionInfo string) (*UserService, error) {
 // User represents a user data type
 type User struct {
 	gorm.Model
-	Name  string
-	Email string `gorm:"not null;unique_index"`
+	Name         string
+	Email        string `gorm:"not null;unique_index"`
+	Password     string `gorm:"-"`
+	PasswordHash string `gorm:"not null"`
 }
 
 // UserService is an abstract layer to interact with gorm.DB
