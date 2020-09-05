@@ -14,7 +14,8 @@ var (
 	ErrNotFound = errors.New("models: resource not found")
 	// ErrInvalidID is returned when an invalid ID is provided
 	// to a method such as Delete.
-	ErrInvalidID = errors.New("models: ID provided is invalid")
+	ErrInvalidID       = errors.New("models: ID provided is invalid")
+	userPasswordPepper = "secret-random-string"
 )
 
 // NewUserService returns a pointer to UserService
@@ -48,8 +49,11 @@ type UserService struct {
 // Create will create the provided user and backfill data
 // like the ID, CreateAt, and UpdateAt fields.
 func (us *UserService) Create(user *User) error {
+	// Add pepper to user password
+	passwordBytes := []byte(user.Password + userPasswordPepper)
+
 	hashedBytes, err := bcrypt.GenerateFromPassword(
-		[]byte(user.Password), bcrypt.DefaultCost,
+		passwordBytes, bcrypt.DefaultCost,
 	)
 	if err != nil {
 		return err
