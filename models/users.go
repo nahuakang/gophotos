@@ -15,6 +15,7 @@ var (
 	// ErrInvalidID is returned when an invalid ID is provided
 	// to a method such as Delete.
 	ErrInvalidID       = errors.New("models: ID provided is invalid")
+	ErrInvalidPassword = errors.New("models: incorrect password provided")
 	userPasswordPepper = "secret-random-string"
 )
 
@@ -63,6 +64,32 @@ func (us *UserService) Create(user *User) error {
 	user.Password = "" // Clear reference to cleartext password after hashing
 
 	return us.db.Create(user).Error
+}
+
+// Authenticate authenticates a user with the provided email and password.
+// If the email address provided is invalid, return nil, ErrNotFound
+// If the password provided is invalid, return nil, ErrInvalidPassword
+// If the email and the password are both valid, return user, nil
+// Otherwise, return nil, error
+func (us *UserService) Authenticate(email, password string) (*User, error) {
+	foundUser, err := us.ByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(foundUser.PasswordHash),
+		[]byte(password+userPasswordPepper),
+	)
+
+	switch err {
+	case nil:
+		return foundUser, nil
+	case bcrypt.ErrMismatchedHashAndPassword:
+		return nil, ErrInvalidPassword
+	default:
+		return nil, err
+	}
 }
 
 // Update updates the provided user with the data provided.
