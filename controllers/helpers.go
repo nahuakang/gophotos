@@ -21,6 +21,7 @@ func parseForm(r *http.Request, dst interface{}) error {
 
 // SignupForm represents the form submitted by a user when creating a new account
 type SignupForm struct {
+	Name     string `schema:"name"`
 	Email    string `schema:"email"`
 	Password string `schema:"password"`
 }
