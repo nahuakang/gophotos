@@ -94,6 +94,21 @@ type User struct {
 	RememberHash string `gorm:"not null;unique_index"`
 }
 
+// userValFn is the function type for user validation functions
+type userValFn func(*User) error
+
+// runUserValFns accepts a pointer to a user and any number of
+// validation functions that comply to the type userValFn signature,
+// then iterates over all the validation functions.
+func runUserValFns(user *User, fns ...userValFn) error {
+	for _, fn := range fns {
+		if err := fn(user); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // NewUserService returns a pointer to UserService
 func NewUserService(connectionInfo string) (UserService, error) {
 	ug, err := newUserGorm(connectionInfo)
@@ -123,6 +138,27 @@ func newUserGorm(connectionInfo string) (*userGorm, error) {
 	}, nil
 }
 
+// bcryptPassword hashes a user's password with an
+// app-wide pepper and bcrypt, which salts the password.
+func (uv *userValidator) bcryptPassword(user *User) error {
+	if user.Password == "" {
+		// NO need to run this function if the user's
+		// password is not changed.
+		return nil
+	}
+
+	pwBytes := []byte(user.Password + userPasswordPepper)
+	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.PasswordHash = string(hashedBytes)
+	user.Password = ""
+
+	return nil
+}
+
 // ByRemember hashes the remember token and calls
 // ByRemember on the subsequent UserDB layer.
 func (uv *userValidator) ByRemember(token string) (*User, error) {
@@ -133,14 +169,9 @@ func (uv *userValidator) ByRemember(token string) (*User, error) {
 // Create creates the provided user and backfills data
 // such as ID, CreateAt, and UpdateAt fields.
 func (uv *userValidator) Create(user *User) error {
-	pwBytes := []byte(user.Password + userPasswordPepper)
-	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
-	if err != nil {
+	if err := runUserValFns(user, uv.bcryptPassword); err != nil {
 		return err
 	}
-
-	user.PasswordHash = string(hashedBytes)
-	user.Password = ""
 
 	if user.Remember == "" {
 		token, err := rand.RememberToken()
@@ -156,6 +187,10 @@ func (uv *userValidator) Create(user *User) error {
 
 // Update hashes a remember token if one is provided
 func (uv *userValidator) Update(user *User) error {
+	if err := runUserValFns(user, uv.bcryptPassword); err != nil {
+		return err
+	}
+
 	if user.Remember != "" {
 		user.RememberHash = uv.hmac.Hash(user.Remember)
 	}
