@@ -63,7 +63,16 @@ type userGorm struct {
 }
 
 // UserService is an abstract layer to interact with gorm.DB
-type UserService struct {
+type UserService interface {
+	// Authenticate verifies the provided email address and password
+	// are correct. If they are correct, the user corresponding to the
+	// email is returned. Otherwise, ErrNotFound, ErrInvalidPassword,
+	// or another error is returned.
+	Authenticate(email, password string) (*User, error)
+	UserDB
+}
+
+type userService struct {
 	UserDB
 }
 
@@ -86,14 +95,19 @@ type User struct {
 }
 
 // NewUserService returns a pointer to UserService
-func NewUserService(connectionInfo string) (*UserService, error) {
+func NewUserService(connectionInfo string) (UserService, error) {
 	ug, err := newUserGorm(connectionInfo)
 	if err != nil {
 		return nil, err
 	}
 
-	return &UserService{
-		UserDB: userValidator{
+	// We need to update how we construct the user service.
+	// We no longer have the UserService t ype to construct, and
+	// instead need to use the userService type. This IS still
+	// a pointer, as our functions implementing the UserService
+	// are done with pointer receiver, e.g. func (us *userService)
+	return &userService{
+		UserDB: &userValidator{
 			UserDB: ug,
 		},
 	}, nil
@@ -244,7 +258,7 @@ func first(db *gorm.DB, dst interface{}) error {
 // If the password provided is invalid, return nil, ErrInvalidPassword
 // If the email and the password are both valid, return user, nil
 // Otherwise, return nil, error
-func (us *UserService) Authenticate(email, password string) (*User, error) {
+func (us *userService) Authenticate(email, password string) (*User, error) {
 	foundUser, err := us.ByEmail(email)
 	if err != nil {
 		return nil, err
