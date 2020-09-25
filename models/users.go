@@ -58,8 +58,7 @@ type UserDB interface {
 // userGorm represents database interaction layer
 // and implements the UserDB interface fully.
 type userGorm struct {
-	db   *gorm.DB
-	hmac hash.HMAC
+	db *gorm.DB
 }
 
 // UserService is an abstract layer to interact with gorm.DB
@@ -119,28 +118,29 @@ func newUserGorm(connectionInfo string) (*userGorm, error) {
 	}
 
 	db.LogMode(true)
-	hmac := hash.NewHMAC(hmacSecretKey)
 	return &userGorm{
-		db:   db,
-		hmac: hmac,
+		db: db,
 	}, nil
 }
 
-// Create will create the provided user and backfill data
-// like the ID, CreateAt, and UpdateAt fields.
-func (ug *userGorm) Create(user *User) error {
-	// Add pepper to user password
-	passwordBytes := []byte(user.Password + userPasswordPepper)
+// ByRemember hashes the remember token and calls
+// ByRemember on the subsequent UserDB layer.
+func (uv *userValidator) ByRemember(token string) (*User, error) {
+	rememberHash := uv.hmac.Hash(token)
+	return uv.UserDB.ByRemember(rememberHash)
+}
 
-	hashedBytes, err := bcrypt.GenerateFromPassword(
-		passwordBytes, bcrypt.DefaultCost,
-	)
+// Create creates the provided user and backfills data
+// such as ID, CreateAt, and UpdateAt fields.
+func (uv *userValidator) Create(user *User) error {
+	pwBytes := []byte(user.Password + userPasswordPepper)
+	hashedBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
 	user.PasswordHash = string(hashedBytes)
-	user.Password = "" // Clear reference to cleartext password after hashing
+	user.Password = ""
 
 	if user.Remember == "" {
 		token, err := rand.RememberToken()
@@ -149,25 +149,40 @@ func (ug *userGorm) Create(user *User) error {
 		}
 		user.Remember = token
 	}
-	user.RememberHash = ug.hmac.Hash(user.Remember)
 
+	user.RememberHash = uv.hmac.Hash(user.Remember)
+	return uv.UserDB.Create(user)
+}
+
+// Update hashes a remember token if one is provided
+func (uv *userValidator) Update(user *User) error {
+	if user.Remember != "" {
+		user.RememberHash = uv.hmac.Hash(user.Remember)
+	}
+	return uv.UserDB.Update(user)
+}
+
+// Delete deletes the user with the provided ID
+func (uv *userValidator) Delete(id uint) error {
+	if id == 0 {
+		return ErrInvalidID
+	}
+	return uv.UserDB.Delete(id)
+}
+
+// Create will create the provided user and backfill data
+// like the ID, CreateAt, and UpdateAt fields.
+func (ug *userGorm) Create(user *User) error {
 	return ug.db.Create(user).Error
 }
 
 // Update updates the provided user with the data provided.
 func (ug *userGorm) Update(user *User) error {
-	if user.Remember != "" {
-		user.RememberHash = ug.hmac.Hash(user.Remember)
-	}
 	return ug.db.Save(user).Error
 }
 
 // Delete deletes the user with the provided ID
 func (ug *userGorm) Delete(id uint) error {
-	// If no ID is provided
-	if id == 0 {
-		return ErrInvalidID
-	}
 	user := User{Model: gorm.Model{ID: id}}
 	return ug.db.Delete(&user).Error
 }
@@ -275,11 +290,4 @@ func (us *userService) Authenticate(email, password string) (*User, error) {
 	default:
 		return nil, err
 	}
-}
-
-// ByRemember hashes the remember token and calls
-// ByRemember on the subsequent UserDB layer.
-func (uv *userValidator) ByRemember(token string) (*User, error) {
-	rememberHash := uv.hmac.Hash(token)
-	return uv.UserDB.ByRemember(rememberHash)
 }
