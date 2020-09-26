@@ -138,8 +138,8 @@ func newUserGorm(connectionInfo string) (*userGorm, error) {
 	}, nil
 }
 
-// bcryptPassword hashes a user's password with an
-// app-wide pepper and bcrypt, which salts the password.
+// bcryptPassword is a validation helper that hashes a user's
+// password with an app-wide pepper and bcrypt, which salts the password.
 func (uv *userValidator) bcryptPassword(user *User) error {
 	if user.Password == "" {
 		// NO need to run this function if the user's
@@ -159,12 +159,27 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 	return nil
 }
 
-// hmacRemember is a helper function to be consumed by userValidator.ByRemember
+// hmacRemember is a validation helper function to be
+// consumed by userValidator.ByRemember.
 func (uv *userValidator) hmacRemember(user *User) error {
 	if user.Remember == "" {
 		return nil
 	}
 	user.RememberHash = uv.hmac.Hash(user.Remember)
+	return nil
+}
+
+func (uv *userValidator) setRememberIfUnset(user *User) error {
+	if user.Remember != "" {
+		return nil
+	}
+
+	token, err := rand.RememberToken()
+	if err != nil {
+		return err
+	}
+
+	user.Remember = token
 	return nil
 }
 
@@ -184,16 +199,10 @@ func (uv *userValidator) ByRemember(token string) (*User, error) {
 // Create creates the provided user and backfills data
 // such as ID, CreateAt, and UpdateAt fields.
 func (uv *userValidator) Create(user *User) error {
-	if user.Remember == "" {
-		token, err := rand.RememberToken()
-		if err != nil {
-		}
-		user.Remember = token
-	}
-
 	err := runUserValFns(
 		user,
 		uv.bcryptPassword,
+		uv.setRememberIfUnset,
 		uv.hmacRemember,
 	)
 	if err != nil {
