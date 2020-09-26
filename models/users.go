@@ -169,6 +169,8 @@ func (uv *userValidator) hmacRemember(user *User) error {
 	return nil
 }
 
+// setRememberIfUnset is a validation helper that sets the user's remember
+// token if it is not set yet.
 func (uv *userValidator) setRememberIfUnset(user *User) error {
 	if user.Remember != "" {
 		return nil
@@ -181,6 +183,15 @@ func (uv *userValidator) setRememberIfUnset(user *User) error {
 
 	user.Remember = token
 	return nil
+}
+
+func (uv *userValidator) idGreaterThan(n uint) userValFn {
+	return userValFn(func(user *User) error {
+		if user.ID <= n {
+			return ErrInvalidID
+		}
+		return nil
+	})
 }
 
 // ByRemember hashes the remember token and calls
@@ -228,9 +239,14 @@ func (uv *userValidator) Update(user *User) error {
 
 // Delete deletes the user with the provided ID
 func (uv *userValidator) Delete(id uint) error {
-	if id == 0 {
-		return ErrInvalidID
+	var user User
+	user.ID = id
+
+	err := runUserValFns(&user, uv.idGreaterThan(0))
+	if err != nil {
+		return err
 	}
+
 	return uv.UserDB.Delete(id)
 }
 
