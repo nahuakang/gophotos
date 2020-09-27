@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -185,6 +186,13 @@ func (uv *userValidator) setRememberIfUnset(user *User) error {
 	return nil
 }
 
+// normalizeEmail normalizes the email address provided by a user.
+func (uv *userValidator) normalizeEmail(user *User) error {
+	user.Email = strings.ToLower(user.Email)
+	user.Email = strings.TrimSpace(user.Email)
+	return nil
+}
+
 func (uv *userValidator) idGreaterThan(n uint) userValFn {
 	return userValFn(func(user *User) error {
 		if user.ID <= n {
@@ -192,6 +200,21 @@ func (uv *userValidator) idGreaterThan(n uint) userValFn {
 		}
 		return nil
 	})
+}
+
+// ByEmail normalizes an email address before passing it onto
+// the database layer to perform the query.
+func (uv *userValidator) ByEmail(email string) (*User, error) {
+	user := User{
+		Email: email,
+	}
+
+	err := runUserValFns(&user, uv.normalizeEmail)
+	if err != nil {
+		return nil, err
+	}
+
+	return uv.UserDB.ByEmail(user.Email)
 }
 
 // ByRemember hashes the remember token and calls
@@ -215,6 +238,7 @@ func (uv *userValidator) Create(user *User) error {
 		uv.bcryptPassword,
 		uv.setRememberIfUnset,
 		uv.hmacRemember,
+		uv.normalizeEmail,
 	)
 	if err != nil {
 		return err
@@ -229,6 +253,7 @@ func (uv *userValidator) Update(user *User) error {
 		user,
 		uv.bcryptPassword,
 		uv.hmacRemember,
+		uv.normalizeEmail,
 	)
 	if err != nil {
 		return err
