@@ -27,6 +27,10 @@ var (
 
 	// ErrInvalidPassword is returned when incorrect password is provided.
 	ErrInvalidPassword = errors.New("models: incorrect password provided")
+
+	// ErrEmailRequired is returned when an email address is not provided
+	// when creating a user account.
+	ErrEmailRequired = errors.New("models: email address is required")
 )
 
 // UserDB interacts with the users database.
@@ -186,6 +190,15 @@ func (uv *userValidator) setRememberIfUnset(user *User) error {
 	return nil
 }
 
+// requireEmail checks if an email is provided when creating a user.
+func (uv *userValidator) requireEmail(user *User) error {
+	if user.Email == "" {
+		return ErrEmailRequired
+	}
+
+	return nil
+}
+
 // normalizeEmail normalizes the email address provided by a user.
 func (uv *userValidator) normalizeEmail(user *User) error {
 	user.Email = strings.ToLower(user.Email)
@@ -239,6 +252,7 @@ func (uv *userValidator) Create(user *User) error {
 		uv.setRememberIfUnset,
 		uv.hmacRemember,
 		uv.normalizeEmail,
+		uv.requireEmail, // Use after normalizeEmail in case email is whitespace " "
 	)
 	if err != nil {
 		return err
