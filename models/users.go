@@ -2,6 +2,7 @@ package models
 
 import (
 	"errors"
+	"regexp"
 	"strings"
 
 	"github.com/jinzhu/gorm"
@@ -31,6 +32,9 @@ var (
 	// ErrEmailRequired is returned when an email address is not provided
 	// when creating a user account.
 	ErrEmailRequired = errors.New("models: email address is required")
+
+	// ErrEmailInvalid is returned when an invalid email address is provided.
+	ErrEmailInvalid = errors.New("models: email address is not valid")
 )
 
 // UserDB interacts with the users database.
@@ -85,7 +89,8 @@ type userService struct {
 // UserDB in the interface chain
 type userValidator struct {
 	UserDB
-	hmac hash.HMAC
+	hmac       hash.HMAC
+	emailRegex *regexp.Regexp
 }
 
 // User represents a user data type
@@ -122,13 +127,20 @@ func NewUserService(connectionInfo string) (UserService, error) {
 	}
 
 	hmac := hash.NewHMAC(hmacSecretKey)
-	uv := &userValidator{
-		hmac:   hmac,
-		UserDB: ug,
-	}
+	uv := newUserValidator(ug, hmac)
 	return &userService{
 		UserDB: uv,
 	}, nil
+}
+
+func newUserValidator(udb UserDB, hmac hash.HMAC) *userValidator {
+	return &userValidator{
+		UserDB: udb,
+		hmac:   hmac,
+		emailRegex: regexp.MustCompile(
+			`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2-16}$`,
+		),
+	}
 }
 
 func newUserGorm(connectionInfo string) (*userGorm, error) {
@@ -206,6 +218,19 @@ func (uv *userValidator) normalizeEmail(user *User) error {
 	return nil
 }
 
+// emailFormat checks if a user's email address complies to the specified format.
+func (uv *userValidator) emailFormat(user *User) error {
+	if user.Email == "" {
+		return nil
+	}
+
+	if !uv.emailRegex.MatchString(user.Email) {
+		return ErrEmailInvalid
+	}
+
+	return nil
+}
+
 func (uv *userValidator) idGreaterThan(n uint) userValFn {
 	return userValFn(func(user *User) error {
 		if user.ID <= n {
@@ -253,6 +278,7 @@ func (uv *userValidator) Create(user *User) error {
 		uv.hmacRemember,
 		uv.normalizeEmail,
 		uv.requireEmail, // Use after normalizeEmail in case email is whitespace " "
+		uv.emailFormat,
 	)
 	if err != nil {
 		return err
@@ -268,6 +294,8 @@ func (uv *userValidator) Update(user *User) error {
 		uv.bcryptPassword,
 		uv.hmacRemember,
 		uv.normalizeEmail,
+		uv.requireEmail,
+		uv.emailFormat,
 	)
 	if err != nil {
 		return err
