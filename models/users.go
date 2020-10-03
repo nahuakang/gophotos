@@ -22,12 +22,12 @@ var (
 	// in the database.
 	ErrNotFound = errors.New("models: resource not found")
 
-	// ErrInvalidID is returned when an invalid ID is provided
+	// ErrIDInvalid is returned when an invalid ID is provided
 	// to a method such as Delete.
-	ErrInvalidID = errors.New("models: ID provided is invalid")
+	ErrIDInvalid = errors.New("models: ID provided is invalid")
 
-	// ErrInvalidPassword is returned when incorrect password is provided.
-	ErrInvalidPassword = errors.New("models: incorrect password provided")
+	// ErrPasswordIncorrect is returned when incorrect password is provided.
+	ErrPasswordIncorrect = errors.New("models: incorrect password provided")
 
 	// ErrEmailRequired is returned when an email address is not provided
 	// when creating a user account.
@@ -78,7 +78,7 @@ type userGorm struct {
 type UserService interface {
 	// Authenticate verifies the provided email address and password
 	// are correct. If they are correct, the user corresponding to the
-	// email is returned. Otherwise, ErrNotFound, ErrInvalidPassword,
+	// email is returned. Otherwise, ErrNotFound, ErrPasswordIncorrect,
 	// or another error is returned.
 	Authenticate(email, password string) (*User, error)
 	UserDB
@@ -259,7 +259,7 @@ func (uv *userValidator) emailIsAvail(user *User) error {
 func (uv *userValidator) idGreaterThan(n uint) userValFn {
 	return userValFn(func(user *User) error {
 		if user.ID <= n {
-			return ErrInvalidID
+			return ErrIDInvalid
 		}
 		return nil
 	})
@@ -442,7 +442,7 @@ func first(db *gorm.DB, dst interface{}) error {
 
 // Authenticate authenticates a user with the provided email and password.
 // If the email address provided is invalid, return nil, ErrNotFound
-// If the password provided is invalid, return nil, ErrInvalidPassword
+// If the password provided is invalid, return nil, ErrPasswordIncorrect
 // If the email and the password are both valid, return user, nil
 // Otherwise, return nil, error
 func (us *userService) Authenticate(email, password string) (*User, error) {
@@ -460,7 +460,7 @@ func (us *userService) Authenticate(email, password string) (*User, error) {
 	case nil:
 		return foundUser, nil
 	case bcrypt.ErrMismatchedHashAndPassword:
-		return nil, ErrInvalidPassword
+		return nil, ErrPasswordIncorrect
 	default:
 		return nil, err
 	}
