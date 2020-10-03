@@ -39,6 +39,10 @@ var (
 	// ErrEmailTaken is returned when an update or create is attempted with
 	// an email address that is already registered.
 	ErrEmailTaken = errors.New("models: email address is already taken")
+
+	//ErrPasswordTooShort is returned if the provided password is shorter than
+	// 8 characters in length.
+	ErrPasswordTooShort = errors.New("models: password should be at least 8 characters long")
 )
 
 // UserDB interacts with the users database.
@@ -180,6 +184,19 @@ func (uv *userValidator) bcryptPassword(user *User) error {
 	return nil
 }
 
+func (uv *userValidator) passwordMinLength(user *User) error {
+	// If password has not changed, it should be an empty string
+	if user.Password == "" {
+		return nil
+	}
+
+	if len(user.Password) < 8 {
+		return ErrPasswordTooShort
+	}
+
+	return nil
+}
+
 // hmacRemember is a validation helper function to be
 // consumed by userValidator.ByRemember.
 func (uv *userValidator) hmacRemember(user *User) error {
@@ -298,6 +315,7 @@ func (uv *userValidator) ByRemember(token string) (*User, error) {
 func (uv *userValidator) Create(user *User) error {
 	err := runUserValFns(
 		user,
+		uv.passwordMinLength,
 		uv.bcryptPassword,
 		uv.setRememberIfUnset,
 		uv.hmacRemember,
@@ -317,6 +335,7 @@ func (uv *userValidator) Create(user *User) error {
 func (uv *userValidator) Update(user *User) error {
 	err := runUserValFns(
 		user,
+		uv.passwordMinLength,
 		uv.bcryptPassword,
 		uv.hmacRemember,
 		uv.normalizeEmail,
