@@ -35,6 +35,10 @@ var (
 
 	// ErrEmailInvalid is returned when an invalid email address is provided.
 	ErrEmailInvalid = errors.New("models: email address is not valid")
+
+	// ErrEmailTaken is returned when an update or create is attempted with
+	// an email address that is already registered.
+	ErrEmailTaken = errors.New("models: email address is already taken")
 )
 
 // UserDB interacts with the users database.
@@ -138,7 +142,7 @@ func newUserValidator(udb UserDB, hmac hash.HMAC) *userValidator {
 		UserDB: udb,
 		hmac:   hmac,
 		emailRegex: regexp.MustCompile(
-			`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2-16}$`,
+			`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,16}$`,
 		),
 	}
 }
@@ -231,6 +235,27 @@ func (uv *userValidator) emailFormat(user *User) error {
 	return nil
 }
 
+// emailIsAvail checks if an email address for update or create is already registered.
+func (uv *userValidator) emailIsAvail(user *User) error {
+	existing, err := uv.ByEmail(user.Email)
+	if err == ErrNotFound {
+		// Email address is available if no user has that email address
+		return nil
+	}
+
+	// If another error, return it
+	if err != nil {
+		return err
+	}
+
+	// No email found from query, check if it is the same user or a conflicting user
+	if user.ID != existing.ID {
+		return ErrEmailTaken
+	}
+
+	return nil
+}
+
 func (uv *userValidator) idGreaterThan(n uint) userValFn {
 	return userValFn(func(user *User) error {
 		if user.ID <= n {
@@ -279,6 +304,7 @@ func (uv *userValidator) Create(user *User) error {
 		uv.normalizeEmail,
 		uv.requireEmail, // Use after normalizeEmail in case email is whitespace " "
 		uv.emailFormat,
+		uv.emailIsAvail,
 	)
 	if err != nil {
 		return err
@@ -296,6 +322,7 @@ func (uv *userValidator) Update(user *User) error {
 		uv.normalizeEmail,
 		uv.requireEmail,
 		uv.emailFormat,
+		uv.emailIsAvail,
 	)
 	if err != nil {
 		return err
