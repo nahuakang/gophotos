@@ -34,7 +34,18 @@ type LoginForm struct {
 // New renders the form where a user creates a new user account
 // GET /signup
 func (u *Users) New(w http.ResponseWriter, r *http.Request) {
-	if err := u.NewView.Render(w, nil); err != nil {
+	// Alert contains information for alert to templates
+	type Alert struct {
+		Level   string
+		Message string
+	}
+
+	alert := Alert{
+		Level:   "success",
+		Message: "Successfully rendered a dynamic alert!",
+	}
+
+	if err := u.NewView.Render(w, alert); err != nil {
 		panic(err)
 	}
 }
