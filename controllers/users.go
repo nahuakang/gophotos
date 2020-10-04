@@ -34,10 +34,14 @@ type LoginForm struct {
 // New renders the form where a user creates a new user account
 // GET /signup
 func (u *Users) New(w http.ResponseWriter, r *http.Request) {
-	// Alert contains information for alert to templates
 	type Alert struct {
 		Level   string
 		Message string
+	}
+
+	type Data struct {
+		Alert *Alert
+		Yield interface{}
 	}
 
 	alert := Alert{
@@ -45,7 +49,12 @@ func (u *Users) New(w http.ResponseWriter, r *http.Request) {
 		Message: "Successfully rendered a dynamic alert!",
 	}
 
-	if err := u.NewView.Render(w, alert); err != nil {
+	data := Data{
+		Alert: &alert,
+		Yield: "this can be any data b/c its type is interface",
+	}
+
+	if err := u.NewView.Render(w, data); err != nil {
 		panic(err)
 	}
 }
