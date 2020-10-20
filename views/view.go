@@ -77,6 +77,17 @@ type View struct {
 // Render renders a view
 func (v *View) Render(w http.ResponseWriter, data interface{}) error {
 	w.Header().Set("Content-Type", "text/html")
+
+	switch data.(type) {
+	case Data:
+		// do nothing
+	default:
+		// Convert data to the Data struct type
+		data = Data{
+			Yield: data,
+		}
+	}
+
 	return v.Template.ExecuteTemplate(w, v.Layout, data)
 }
 
