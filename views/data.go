@@ -9,6 +9,9 @@ const (
 	AlertLvlInfo = "info"
 	// AlertLvlSuccess represents Bootstrap alert success
 	AlertLvlSuccess = "success"
+	// AlertMsgGeneric is displayed when any random error is encountered on backend
+	AlertMsgGeneric = "Something went wrong. Please try again and" +
+		"contact us if the problem persists."
 )
 
 // Data is the top level structure that views expect data to come in from.
