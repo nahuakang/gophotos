@@ -1,7 +1,6 @@
 package models
 
 import (
-	"errors"
 	"regexp"
 	"strings"
 
@@ -17,42 +16,57 @@ const (
 	userPasswordPepper = "secret-random-string"
 )
 
+type modelError string
+
+// Error ensures that modelError implements error interface
+func (e modelError) Error() string {
+	return string(e)
+}
+
+// Public ensures that modelError implements views.PublicError interface
+func (e modelError) Public() string {
+	s := strings.Replace(string(e), "models: ", "", 1)
+	split := strings.Split(s, " ")
+	split[0] = strings.Title(split[0])
+	return strings.Join(split, " ")
+}
+
 var (
 	// ErrNotFound is returned when a resource cannot be found
 	// in the database.
-	ErrNotFound = errors.New("models: resource not found")
+	ErrNotFound modelError = "models: resource not found"
 
 	// ErrIDInvalid is returned when an invalid ID is provided
 	// to a method such as Delete.
-	ErrIDInvalid = errors.New("models: ID provided is invalid")
+	ErrIDInvalid modelError = "models: ID provided is invalid"
 
 	// ErrPasswordRequired is returned when a create is attempted without password
-	ErrPasswordRequired = errors.New("models: password is required")
+	ErrPasswordRequired modelError = "models: password is required"
 
 	// ErrPasswordIncorrect is returned when incorrect password is provided.
-	ErrPasswordIncorrect = errors.New("models: incorrect password provided")
+	ErrPasswordIncorrect modelError = "models: incorrect password provided"
 
 	// ErrEmailRequired is returned when an email address is not provided
 	// when creating a user account.
-	ErrEmailRequired = errors.New("models: email address is required")
+	ErrEmailRequired modelError = "models: email address is required"
 
 	// ErrEmailInvalid is returned when an invalid email address is provided.
-	ErrEmailInvalid = errors.New("models: email address is not valid")
+	ErrEmailInvalid modelError = "models: email address is not valid"
 
 	// ErrEmailTaken is returned when an update or create is attempted with
 	// an email address that is already registered.
-	ErrEmailTaken = errors.New("models: email address is already taken")
+	ErrEmailTaken modelError = "models: email address is already taken"
 
 	//ErrPasswordTooShort is returned if the provided password is shorter than
 	// 8 characters in length.
-	ErrPasswordTooShort = errors.New("models: password should be at least 8 characters long")
+	ErrPasswordTooShort modelError = "models: password should be at least 8 characters long"
 
 	// ErrRememberRequired is returned when a create or update is attempted
 	// without a user remember token hash.
-	ErrRememberRequired = errors.New("models: remember token is required")
+	ErrRememberRequired modelError = "models: remember token is required"
 
 	// ErrRememberTooShort is returned when a remember token is not at least 32 bytes
-	ErrRememberTooShort = errors.New("models: remember token must be at least 32 bytes")
+	ErrRememberTooShort modelError = "models: remember token must be at least 32 bytes"
 )
 
 // UserDB interacts with the users database.
