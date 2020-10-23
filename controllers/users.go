@@ -34,9 +34,7 @@ type LoginForm struct {
 // New renders the form where a user creates a new user account
 // GET /signup
 func (u *Users) New(w http.ResponseWriter, r *http.Request) {
-	if err := u.NewView.Render(w, nil); err != nil {
-		panic(err)
-	}
+	u.NewView.Render(w, nil)
 }
 
 // Create propcesses the signup form when a user creates a new user account
