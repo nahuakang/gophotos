@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nahuakang/gophotos/context"
 	"github.com/nahuakang/gophotos/models"
 )
 
@@ -40,6 +41,12 @@ func (mw *RequireUser) ApplyFn(next http.HandlerFunc) http.HandlerFunc {
 		}
 		fmt.Println("User found: ", user)
 
+		// Get the context from request
+		ctx := r.Context()
+		// Create a new context from the existing one that includes the user
+		ctx = context.WithUser(ctx, user)
+		// Create a new request from the existing one with the context attached
+		r = r.WithContext(ctx)
 		// If user exists, call next(w, r)
 		next(w, r)
 	})

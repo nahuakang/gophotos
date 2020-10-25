@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nahuakang/gophotos/context"
 	"github.com/nahuakang/gophotos/models"
 	"github.com/nahuakang/gophotos/views"
 )
@@ -33,8 +34,10 @@ func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user := context.User(r.Context())
 	gallery := models.Gallery{
-		Title: form.Title,
+		Title:  form.Title,
+		UserID: user.ID,
 	}
 
 	if err := g.gs.Create(&gallery); err != nil {
@@ -42,7 +45,6 @@ func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
 		g.New.Render(w, vd)
 		return
 	}
-
 	fmt.Fprintln(w, gallery)
 }
 
