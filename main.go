@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/nahuakang/gophotos/controllers"
+	"github.com/nahuakang/gophotos/middleware"
 	"github.com/nahuakang/gophotos/models"
 )
 
@@ -36,6 +37,16 @@ func main() {
 	usersController := controllers.NewUsers(services.User)
 	galleriesController := controllers.NewGalleries(services.Gallery)
 
+	// Middleware
+	requireUserMw := middleware.RequireUser{
+		UserService: services.User,
+	}
+
+	// galleriesController.New is http.Handler, use Apply
+	newGallery := requireUserMw.Apply(galleriesController.New)
+	// galleriesController.Create is http.HandlerFunc, use ApplFn
+	createGallery := requireUserMw.ApplyFn(galleriesController.Create)
+
 	r := mux.NewRouter()
 	r.Handle("/", staticController.Home).Methods("GET")
 	r.Handle("/contact", staticController.Contact).Methods("GET")
@@ -44,8 +55,8 @@ func main() {
 	r.Handle("/login", usersController.LoginView).Methods("GET")
 	r.HandleFunc("/login", usersController.Login).Methods("POST")
 	r.HandleFunc("/cookietest", usersController.CookieTest).Methods("GET")
-	r.Handle("/galleries/new", galleriesController.New).Methods("GET")
-	r.HandleFunc("/galleries", galleriesController.Create).Methods("POST")
+	r.Handle("/galleries/new", newGallery).Methods("GET")
+	r.HandleFunc("/galleries", createGallery).Methods("POST")
 
 	fmt.Println("Starting the server on :3000...")
 	http.ListenAndServe(":3000", r)
