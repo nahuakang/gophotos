@@ -12,15 +12,17 @@ import (
 // NewGalleries returns a new Galleries controller
 func NewGalleries(gs models.GalleryService) *Galleries {
 	return &Galleries{
-		New: views.NewView("bootstrap", "galleries/new"),
-		gs:  gs,
+		New:      views.NewView("bootstrap", "galleries/new"),
+		ShowView: views.NewView("bootstrap", "galleries/show"),
+		gs:       gs,
 	}
 }
 
 // Galleries is the controller for galleries
 type Galleries struct {
-	New *views.View
-	gs  models.GalleryService
+	New      *views.View
+	ShowView *views.View
+	gs       models.GalleryService
 }
 
 // Create handles POST requests for galleries
