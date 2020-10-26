@@ -36,8 +36,14 @@ type galleryService struct {
 	GalleryDB
 }
 
-// GalleryDB represents interface for the gallery database
+// GalleryDB interacts with the galleries database.
+//
+// For all single gallery queries:
+// If the gallery is found, a nil error is returned.
+// If the gallery is not found, ErrNotFound is returned.
+// If another error occurs, that error is returned.
 type GalleryDB interface {
+	ByID(id uint) (*Gallery, error)
 	Create(gallery *Gallery) error
 }
 
@@ -78,6 +84,16 @@ var _ GalleryDB = &galleryGorm{}
 
 type galleryGorm struct {
 	db *gorm.DB
+}
+
+func (gg *galleryGorm) ByID(id uint) (*Gallery, error) {
+	var gallery Gallery
+	db := gg.db.Where("id = ?", id)
+	err := first(db, &gallery)
+	if err != nil {
+		return nil, err
+	}
+	return &gallery, nil
 }
 
 func (gg *galleryGorm) Create(gallery *Gallery) error {
