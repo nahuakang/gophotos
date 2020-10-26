@@ -57,6 +57,7 @@ func main() {
 	r.HandleFunc("/cookietest", usersController.CookieTest).Methods("GET")
 	r.Handle("/galleries/new", newGallery).Methods("GET")
 	r.HandleFunc("/galleries", createGallery).Methods("POST")
+	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesController.Show).Methods("GET")
 
 	fmt.Println("Starting the server on :3000...")
 	http.ListenAndServe(":3000", r)
