@@ -61,6 +61,7 @@ func main() {
 	r.HandleFunc("/galleries/{id:[0-9]+}", galleriesController.Show).
 		Methods("GET").
 		Name(controllers.ShowGallery)
+	r.HandleFunc("/galleries/{id:[0-9]+}/edit", requireUserMw.ApplyFn(galleriesController.Edit)).Methods("GET")
 
 	fmt.Println("Starting the server on :3000...")
 	http.ListenAndServe(":3000", r)
