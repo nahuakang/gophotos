@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -11,12 +10,16 @@ import (
 	"github.com/nahuakang/gophotos/views"
 )
 
+// ShowGallery is the show galleries route
+const ShowGallery = "show_gallery"
+
 // NewGalleries returns a new Galleries controller
-func NewGalleries(gs models.GalleryService) *Galleries {
+func NewGalleries(gs models.GalleryService, r *mux.Router) *Galleries {
 	return &Galleries{
 		New:      views.NewView("bootstrap", "galleries/new"),
 		ShowView: views.NewView("bootstrap", "galleries/show"),
 		gs:       gs,
+		router:   r,
 	}
 }
 
@@ -25,6 +28,7 @@ type Galleries struct {
 	New      *views.View
 	ShowView *views.View
 	gs       models.GalleryService
+	router   *mux.Router
 }
 
 // Create handles POST requests for galleries
@@ -49,7 +53,14 @@ func (g *Galleries) Create(w http.ResponseWriter, r *http.Request) {
 		g.New.Render(w, vd)
 		return
 	}
-	fmt.Fprintln(w, gallery)
+
+	url, err := g.router.Get(ShowGallery).URL("id", strconv.Itoa(int(gallery.ID)))
+	if err != nil {
+		http.Redirect(w, r, "/", http.StatusFound)
+		return
+	}
+
+	http.Redirect(w, r, url.Path, http.StatusFound)
 }
 
 // Show handles GET /galleries/:id requests
